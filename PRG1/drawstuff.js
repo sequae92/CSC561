@@ -1,7 +1,6 @@
-//Define all the standard vectors
 	
-/* classes */ 
-//function shadePixel(i,j,min_t,lightPos,inputEllipsoids[e],pe,eyePos);
+/* Defining classes Color and Vector */
+
 // Color constructor
 class Color {
     constructor(r,g,b,a) {
@@ -185,10 +184,10 @@ class Vector {
 var globals = { lightPos: new Vector(-1,3,-0.5),  // light over left upper rect
                     lightCol: new Color(255,255,255)}; // light is white
 					
-	// All vectors are wrt Origin at (0,0,0)				
+	// All vectors are wrt World Origin at (0,0,0)				
 	var eyePos = new Vector(0.5,0.5,-0.5);
 	var viewUp = new Vector(0,1,0);
-	var lookAt = new Vector(0,0,1);
+	var lookAt = new Vector(0,0,1); 
 
 /* utility functions */
 
@@ -214,26 +213,6 @@ function drawPixel(imagedata,x,y,color) {
     }
 } // end drawPixel
     
-// draw random pixels
-function drawRandPixels(context) {
-    var c = new Color(0,0,0,0); // the color at the pixel: black
-    var w = context.canvas.width;
-    var h = context.canvas.height;
-    var imagedata = context.createImageData(w,h);
-    const PIXEL_DENSITY = 0.01;
-    var numPixels = (w*h)*PIXEL_DENSITY; 
-    
-    // Loop over 1% of the pixels in the image
-    for (var x=0; x<numPixels; x++) {
-        c.change(Math.random()*255,Math.random()*255,
-            Math.random()*255,255); // rand color
-        drawPixel(imagedata,
-            Math.floor(Math.random()*w),
-            Math.floor(Math.random()*h),
-                c);
-    } // end for x
-    context.putImageData(imagedata, 0, 0);
-} // end draw random pixels
 
 // get the input ellipsoids from the standard class URL
 function getInputEllipsoids() {
@@ -256,95 +235,13 @@ function getInputEllipsoids() {
         return JSON.parse(httpReq.response); 
 } // end get input ellipsoids
 
-// put random points in the ellipsoids from the class github
-function drawRandPixelsInInputEllipsoids(context) {
-    var inputEllipsoids = getInputEllipsoids();
-    var w = context.canvas.width;
-    var h = context.canvas.height;
-    var imagedata = context.createImageData(w,h);
-    const PIXEL_DENSITY = 0.05;
-    var numCanvasPixels = (w*h)*PIXEL_DENSITY; 
-    
-    if (inputEllipsoids != String.null) { 
-        var x = 0; var y = 0; // pixel coord init
-        var cx = 0; var cy = 0; // init center x and y coord
-        var ellipsoidXRadius = 0; // init ellipsoid x radius
-        var ellipsoidYRadius = 0; // init ellipsoid y radius
-        var numEllipsoidPixels = 0; // init num pixels in ellipsoid
-        var c = new Color(0,0,0,0); // init the ellipsoid color
-        var n = inputEllipsoids.length; // the number of input ellipsoids
-        //console.log("number of ellipses: " + n);
 
-        // Loop over the ellipsoids, draw rand pixels in each
-        for (var e=0; e<n; e++) {
-            cx = w*inputEllipsoids[e].x; // ellipsoid center x
-            cy = h*inputEllipsoids[e].y; // ellipsoid center y
-            ellipsoidXRadius = Math.round(w*inputEllipsoids[e].a); // x radius
-            ellipsoidYRadius = Math.round(h*inputEllipsoids[e].b); // y radius
-            numEllipsoidPixels = inputEllipsoids[e].a*inputEllipsoids[e].b*Math.PI; // projected ellipsoid area
-            numEllipsoidPixels *= PIXEL_DENSITY * w * h; // percentage of ellipsoid area to render to pixels
-            numEllipsoidPixels = Math.round(numEllipsoidPixels);
-            console.log("ellipsoid x radius: "+ellipsoidXRadius);
-            console.log("ellipsoid y radius: "+ellipsoidYRadius);
-            console.log("num ellipsoid pixels: "+numEllipsoidPixels);
-            c.change(
-                inputEllipsoids[e].diffuse[0]*255,
-                inputEllipsoids[e].diffuse[1]*255,
-                inputEllipsoids[e].diffuse[2]*255,
-                255); // ellipsoid diffuse color
-            for (var p=0; p<numEllipsoidPixels; p++) {
-                do {
-                    x = Math.random()*2 - 1; // in unit square 
-                    y = Math.random()*2 - 1; // in unit square
-                } while (Math.sqrt(x*x + y*y) > 1) // a circle is also an ellipse
-                drawPixel(imagedata,
-                    cx+Math.round(x*ellipsoidXRadius),
-                    cy+Math.round(y*ellipsoidYRadius),c);
-                //console.log("color: ("+c.r+","+c.g+","+c.b+")");
-                //console.log("x: "+Math.round(w*inputEllipsoids[e].x));
-                //console.log("y: "+Math.round(h*inputEllipsoids[e].y));
-            } // end for pixels in ellipsoid
-        } // end for ellipsoids
-        context.putImageData(imagedata, 0, 0);
-    } // end if ellipsoids found
-} // end draw rand pixels in input ellipsoids
-
-// draw 2d projections read from the JSON file at class github
-function drawInputEllipsoidsUsingArcs(context) {
-    var inputEllipsoids = getInputEllipsoids();
-    
-    
-    if (inputEllipsoids != String.null) { 
-        var c = new Color(0,0,0,0); // the color at the pixel: black
-        var w = context.canvas.width;
-        var h = context.canvas.height;
-        var n = inputEllipsoids.length; 
-        //console.log("number of ellipsoids: " + n);
-
-        // Loop over the ellipsoids, draw each in 2d
-        for (var e=0; e<n; e++) {
-            context.fillStyle = 
-                "rgb(" + Math.floor(inputEllipsoids[e].diffuse[0]*255)
-                +","+ Math.floor(inputEllipsoids[e].diffuse[1]*255)
-                +","+ Math.floor(inputEllipsoids[e].diffuse[2]*255) +")"; // diffuse color
-            context.save(); // remember previous (non-) scale
-            context.translate(w*inputEllipsoids[e].x,h*inputEllipsoids[e].y); // translate ellipsoid to ctr
-            context.scale(1, inputEllipsoids[e].b/inputEllipsoids[e].a); // scale by ellipsoid ratio 
-            context.beginPath();
-            context.arc(0,0,Math.round(w*inputEllipsoids[e].a),0,2*Math.PI);
-            context.restore(); // undo scale before fill so stroke width unscaled
-            context.fill();
-            //console.log(context.fillStyle);
-            //console.log("x: "+Math.round(w*inputEllipsoids[e].x));
-            //console.log("y: "+Math.round(h*inputEllipsoids[e].y));
-            //console.log("a: "+Math.round(w*inputEllipsoids[e].a));
-            //console.log("b: "+Math.round(h*inputEllipsoids[e].b));
-        } // end for ellipsoids
-    } // end if ellipsoids found
-} // end draw input ellipsoids
+// function for illumination of every pixel using ambient, diffuse and specular components
 
 function shadePixel(i,j,min_t,lightPos,ellipE,pe,eyePos,imagedata) 
-{        
+{       
+
+// Initialize color components 
         var difColor = new Color(0,0,0,255);
 		var finalColor  = new Color(0,0,0,255);
 		var ambColor  = new Color(0,0,0,255);
@@ -361,7 +258,7 @@ function shadePixel(i,j,min_t,lightPos,ellipE,pe,eyePos,imagedata)
 		var cz = ellipE.z;
 		
 		var globals = { lightPos: new Vector(-1,3,-0.5),  // light over left upper rect
-                    lightCol: new Color(255,255,255,255)};    // light is white
+                    lightCol: new Color(255,255,255,255)};    // light is white 
 		
 		//Find intersection between ray coming from pixel to ellipsoid
 		
@@ -373,27 +270,25 @@ function shadePixel(i,j,min_t,lightPos,ellipE,pe,eyePos,imagedata)
 		var yn = 2*Math.pow(a,2)*Math.pow(c,2)*(intersection.y - cy);
 		var zn = 2*Math.pow(a,2)*Math.pow(b,2)*(intersection.z - cz);
 		
-		//Calculate color components
+		//Calculate separate color components
 		
         // get light vector
        
         lVect = Vector.subtract(lightPos,intersection);
         lVect = Vector.normalize(lVect);
 		
+		// assemble normal vector - normal to the ellipsoid, line point of intersection
 		var nVect = Vector.normalize(new Vector(xn,yn,zn));
-	
-		//console.log(lVect);
         var NdotL = Vector.dot(lVect,nVect); // rect in xy plane
 		if(NdotL<0)
 			NdotL = 0;
-		//console.log(globals.lightCol);
-        //NdotL =1;
+		
         // calc diffuse color
         difColor.r = ellipE.diffuse[0] * globals.lightCol.r * NdotL;
         difColor.g = ellipE.diffuse[1] * globals.lightCol.g * NdotL;
         difColor.b = ellipE.diffuse[2] * globals.lightCol.b * NdotL;
 		
-		//calc ambient color
+		// calc ambient color
 		ambColor.r = ellipE.ambient[0] * globals.lightCol.r;
         ambColor.g = ellipE.ambient[1] * globals.lightCol.g;
         ambColor.b = ellipE.ambient[2] * globals.lightCol.b;
@@ -405,8 +300,6 @@ function shadePixel(i,j,min_t,lightPos,ellipE,pe,eyePos,imagedata)
 		vVect = Vector.subtract(eyePos,intersection);
 		lVect = Vector.subtract(lightPos,intersection);
 		var hVect = Vector.normalize(Vector.add(lVect,vVect));
-		//console.log(hVect);
-		
 		var specHV = Math.pow((Vector.dot(hVect,nVect)),ellipE.n);
 		
 		if(specHV < 0)
@@ -416,35 +309,33 @@ function shadePixel(i,j,min_t,lightPos,ellipE,pe,eyePos,imagedata)
         specColor.r = ellipE.specular[0] * globals.lightCol.r * specHV;
         specColor.g = ellipE.specular[1] * globals.lightCol.g * specHV;
         specColor.b = ellipE.specular[2]* globals.lightCol.b * specHV;
-		//console.log(specColor);
 		
+		// add all color components to get finalcolor
 		finalColor.r = Math.round(ambColor.r + difColor.r + specColor.r);
 		finalColor.g = Math.round(ambColor.g + difColor.g + specColor.g);
 		finalColor.b = Math.round(ambColor.b + difColor.b + specColor.b);
 		finalColor.a = 255;
-		//if()
-        
-		//console.log(finalColor);
 		
-        drawPixel(imagedata,i,j,finalColor);
+        drawPixel(imagedata,i,j,finalColor); // call function for every pixel
+		
 } // end shade pixel
 
 
 
 function mydrawInputEllipsoids(context,UR,LL,UR,UL,eyePos){
 	
+	//initialising variables
 	var inputEllipsoids = getInputEllipsoids();
     var w = context.canvas.width;
     var h = context.canvas.height;
-    var imagedata = context.createImageData(w,h);
-    const PIXEL_DENSITY = 0.05;
-    var numCanvasPixels = (w*h)*PIXEL_DENSITY; 
+    var imagedata = context.createImageData(w,h); 
 	var A = 0, B = 0, C = 0, D = 0;
 	var pxray = 0;
 
     
     if (inputEllipsoids != String.null) { 
-        var px = 0; var py = 0; // pixel coord init
+        
+		var px = 0; var py = 0; // pixel coord init
         var cx = 0; var cy = 0; // init center x and y coord
         var ellipsoidXRadius = 0; // init ellipsoid x radius
         var ellipsoidYRadius = 0; // init ellipsoid y radius
@@ -454,42 +345,22 @@ function mydrawInputEllipsoids(context,UR,LL,UR,UL,eyePos){
         var c = new Color(0,0,0,255); // init the ellipsoid color
         
 		var n = inputEllipsoids.length; // the number of input ellipsoids
-        //console.log("number of ellipses: " + n);
 		var t = null;
 		var pz,rt1,rt2;
 
-        // Loop over the ellipsoids, draw rand pixels in each
-        
-			
-			//numEllipsoidPixels = inputEllipsoids[e].a*inputEllipsoids[e].b*Math.PI; // projected ellipsoid area
-            //numEllipsoidPixels *= PIXEL_DENSITY * w * h; // percentage of ellipsoid area to render to pixels
-            //numEllipsoidPixels = Math.round(numEllipsoidPixels);
-            
-			//console.log("ellipsoid x radius: "+ellipsoidXRadius);
-            //console.log("ellipsoid y radius: "+ellipsoidYRadius);
-            //console.log("num ellipsoid pixels: "+numEllipsoidPixels);
-           
-            
-			/*for(var p=0; p<numEllipsoidPixels; p++) {
-                do {
-                    //x = Math.random()*2 - 1; // in unit square 
-					//y = Math.random()*2 - 1; // in unit square */
+        // Loop over the pixels, and then loop over each ellipsoid
 					
             for(var i = 0; i< w; i++){
 				for(var j = 0; j< h; j++){
 
 						px = UL.x + (i/w)*(UR.x-UL.x);
-						//console.log(px);
-						
 						py = UL.y + (j/h)*(LL.y-UL.y);
-						//console.log(py);
 						
-						var min_e = null;
-						var min_t = null;
+						var min_e = null; // for storing the active ellipse
+						var min_t = null; // for storing the least root
 						
-						for (var e=0; e<n; e++) {
-						
-			
+						for (var e=0; e<n; e++) { // for every ellipse, find the parameter t
+							
 							cx = inputEllipsoids[e].x; // ellipsoid center x
 							cy = inputEllipsoids[e].y; // ellipsoid center y
 							cz = inputEllipsoids[e].z; // ellipsoid center z
@@ -498,78 +369,64 @@ function mydrawInputEllipsoids(context,UR,LL,UR,UL,eyePos){
 							ellipsoidYRadius = inputEllipsoids[e].b; // y radius
 							ellipsoidZRadius = inputEllipsoids[e].c; // z radius
 							
-							pxray = new Vector(px,py,0); //
+							pxray = new Vector(px,py,0); // pixel ray
 							
-							// YSTH
+							ellipsePoint = new Vector(cx,cy,cz); // Ellipse center vector
+							ellipse = new Vector(ellipsoidXRadius,ellipsoidYRadius,ellipsoidZRadius); // ellipse radius vector
 							
-							ellipsePoint = new Vector(cx,cy,cz);
-							ellipse = new Vector(ellipsoidXRadius,ellipsoidYRadius,ellipsoidZRadius);
+							ec = Vector.subtract(eyePos,ellipsePoint); // Vector from eye to ellipse center
 							
-							ec = Vector.subtract(eyePos,ellipsePoint);
-							//console.log(ec);
+							pe = Vector.subtract(pxray, eyePos); // Vector from pixel plane to eyePos 
 							
-							pe = Vector.subtract(pxray, eyePos);
-							//console.log(pe);
+							// Componenents to calculate the root
 							
-							A = Vector.dot(Vector.divide(pe,ellipse),Vector.divide(pe,ellipse));
-							//console.log(A);
+							A = Vector.dot(Vector.divide(pe,ellipse),Vector.divide(pe,ellipse)); 
 							
 							B = 2*Vector.dot(Vector.divide(pe,ellipse),Vector.divide(ec,ellipse));
-							//console.log(B);
 							
 							C = Vector.dot(Vector.divide(ec,ellipse),Vector.divide(ec,ellipse)) - 1;
-						//console.log(C);
 							
-							D = Math.pow(B,2)- (4*A*C);
-						//console.log(D);
-						//(1/2a) (-b ± (b2 - 4ac)½)
+							D = Math.pow(B,2)- (4*A*C); // Discriminant
+						
 						if(D>=0)
-						{
+						{ // Calculating teh roots for positive D
 							rt1 = ((-B) + Math.pow(D,0.5))/(2*A);
-							//console.log(rt1);
+							
 							rt2 = ((-B) - Math.pow(D,0.5))/(2*A);
-							//console.log(rt2);
+							
 							t = rt2;
 							if(rt1 < rt2)
-								t = rt1;
-							if (min_t == null){
+								t = rt1; // Finding min root
+							if (min_t == null){ // Initial condition
 								min_t = t;
 								min_e = e;
 							}
 							else {
-								if (t < min_t){
+								if (t < min_t){ // In the case minimum is not the least
 									min_t = t;
 									min_e = e
 								}
 							}
 						}
 				}
-				//console.log(pxray);
-			    //Every pixel color
 				
-				if(min_e == null){
+				if(min_e == null){ // Give the backgrund color when no intersection is present
 					c.change(0,0,0,255);
-					 drawPixel(imagedata,i,j,c);
+					drawPixel(imagedata,i,j,c);
 				}
-				else{
+				else{ // given the intersection, call the function for illumination
 					shadePixel(i,j,min_t,globals.lightPos,inputEllipsoids[min_e],pe,eyePos,imagedata);	
 				}
 				
-				}// for j close
-			}// for i close
+				}// for closing the outer pixel loop
+			}// for closing the inner pixel loop
 					
-                //console.log("color: ("+c.r+","+c.g+","+c.b+")");
-                //console.log("x: "+Math.round(w*inputEllipsoids[e].x));
-                //console.log("y: "+Math.round(h*inputEllipsoids[e].y));
             } // end for check for ellipsoid
         
         context.putImageData(imagedata, 0, 0);
-    } // end if ellipsoids found // end draw rand pixels in input ellipsoids
-	
+    } // end if ellipsoids found
 
 /* main -- here is where execution begins after window load */
-
-
 
 function main() {
 
@@ -601,22 +458,4 @@ function main() {
 	//Call the function which renders the ellipsoids
 	
 	mydrawInputEllipsoids(context,UR,LL,UR,UL,eyePos);
-	
-	//First find the ray in (X,Y) pixel coordinates
-	
-	// Ray - ellipsoid intersection
-	
-	// D/A•D/A t2 + 2 D/A•(E-C)/A t + (E-C)/A•(E-C)/A - 1 = 0
-	
-
-    // Create the image
-	
-    //drawRandPixels(context);
-      // shows how to draw pixels
-    
-    //drawRandPixelsInInputEllipsoids(context);
-      // shows how to draw pixels and read input file
-      
-    //drawInputEllipsoidsUsingArcs(context);
-      // shows how to read input file, but not how to draw pixels
 }
